@@ -2,7 +2,7 @@
  * ads.js — AdSense placeholder (MVP)
  */
 const Ads = (() => {
-  const ADSENSE_ENABLED = false;
+  const ADSENSE_ENABLED = true;
 
   function init() {
     if (!ADSENSE_ENABLED) return;
@@ -15,7 +15,7 @@ const Ads = (() => {
     if (!slot) return;
     slot.style.display = 'flex';
     if (ADSENSE_ENABLED) {
-      // (adsbygoogle = window.adsbygoogle || []).push({});
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
     }
   }
 
