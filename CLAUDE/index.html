@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <!-- v2 -->
+  <!-- v3 -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0a0a0f">
-  <meta name="description" content="60초 안에 패턴을 기억하고 따라하세요! 사이먼 게임 스타일 4x4 패턴 기억력 배틀.">
+  <meta name="description" content="60초 안에 패턴을 기억하고 따라하세요! 사이먼 게임 스타일 4x4 패턴 기억력 배틀. 다양한 난이도, 일간 챌린지, 글로벌 랭킹까지.">
+  <meta property="og:title" content="패턴 배틀 | 60초 기억력 도전">
+  <meta property="og:description" content="60초 안에 최대한 많은 패턴을 기억하세요! 나는 상위 몇 %?">
+  <meta property="og:type" content="website">
   <title>패턴 배틀 | 60초 기억력 도전</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8722810095782151"
@@ -23,15 +26,40 @@
     <h1 class="title">패턴 배틀</h1>
     <p class="subtitle">60초 안에 최대한 많은 패턴을 기억하세요</p>
 
-    <div class="grid-container" id="grid-preview" style="max-width:200px;pointer-events:none;">
-      <!-- 4x4 preview grid (decorative) -->
-    </div>
+    <div class="grid-container" id="grid-preview" style="max-width:200px;pointer-events:none;"></div>
 
     <div style="display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;">
       <input type="text" id="input-nickname" class="nickname-input" placeholder="닉네임 (최대 12자)" maxlength="12">
     </div>
 
+    <!-- Mode Selection -->
+    <div class="mode-selector">
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="normal">일반</button>
+        <button class="mode-tab" data-mode="daily">일간 챌린지</button>
+      </div>
+      <div class="difficulty-selector" id="difficulty-selector">
+        <button class="diff-btn" data-diff="easy">
+          <span class="diff-icon">3x3</span>
+          <span class="diff-label">쉬움</span>
+        </button>
+        <button class="diff-btn active" data-diff="normal">
+          <span class="diff-icon">4x4</span>
+          <span class="diff-label">보통</span>
+        </button>
+        <button class="diff-btn" data-diff="hard">
+          <span class="diff-icon">5x5</span>
+          <span class="diff-label">어려움</span>
+        </button>
+      </div>
+    </div>
+
     <button id="btn-start" class="btn btn-primary">게임 시작</button>
+
+    <div class="start-best-score" id="start-best-score" style="display:none;">
+      <span class="hud-label">최고 기록</span>
+      <span class="hud-value" id="best-score-display" style="color:var(--accent-glow);font-size:1.2rem;">0</span>
+    </div>
 
     <div id="ad-below-game" class="ad-slot">
       <ins class="adsbygoogle"
@@ -66,9 +94,7 @@
 
     <div class="pattern-progress" id="pattern-progress"></div>
 
-    <div class="grid-container disabled" id="grid-game">
-      <!-- Cells injected by JS -->
-    </div>
+    <div class="grid-container disabled" id="grid-game"></div>
 
     <div id="game-message" class="subtitle" style="min-height:1.5em;"></div>
   </div>
@@ -83,6 +109,7 @@
     <h2 class="title">게임 종료!</h2>
 
     <div class="result-score" id="result-score">0</div>
+    <div class="result-new-best" id="result-new-best" style="display:none;">NEW BEST!</div>
 
     <div class="result-card">
       <div class="result-row">
@@ -98,9 +125,20 @@
         <span class="result-value" id="result-accuracy">0%</span>
       </div>
       <div class="result-row">
+        <span class="result-label">난이도</span>
+        <span class="result-value" id="result-difficulty">보통</span>
+      </div>
+      <div class="result-row">
         <span class="result-label">랭크</span>
         <span class="result-value" id="result-rank">-</span>
       </div>
+    </div>
+
+    <!-- Share buttons -->
+    <div class="share-buttons" id="share-buttons">
+      <button class="btn-share btn-share-x" id="btn-share-x" title="X(Twitter)에 공유">𝕏 공유</button>
+      <button class="btn-share btn-share-kakao" id="btn-share-kakao" title="카카오톡 공유">카카오톡</button>
+      <button class="btn-share btn-share-copy" id="btn-share-copy" title="링크 복사">링크 복사</button>
     </div>
 
     <div id="ad-result-screen" class="ad-slot">
@@ -134,6 +172,215 @@
     <button id="btn-back-from-ranking" class="btn btn-secondary" style="width:100%;">돌아가기</button>
   </div>
 
+  <!-- ===== STATS SCREEN ===== -->
+  <div id="screen-stats" class="screen">
+    <h2 class="title">내 기록</h2>
+
+    <div class="stats-summary">
+      <div class="stat-card">
+        <span class="stat-number" id="stat-games">0</span>
+        <span class="stat-desc">총 플레이</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="stat-best">0</span>
+        <span class="stat-desc">최고 점수</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="stat-avg">0</span>
+        <span class="stat-desc">평균 점수</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="stat-best-combo">0</span>
+        <span class="stat-desc">최고 콤보</span>
+      </div>
+    </div>
+
+    <div class="stats-chart-section">
+      <h3 class="section-title">최근 기록 추이</h3>
+      <div class="chart-container" id="chart-container">
+        <canvas id="stats-chart" width="380" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="stats-history">
+      <h3 class="section-title">최근 플레이</h3>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <div id="ad-stats-screen" class="ad-slot">
+      <ins class="adsbygoogle"
+        style="display:block"
+        data-ad-client="ca-pub-8722810095782151"
+        data-ad-slot="auto"
+        data-ad-format="auto"
+        data-full-width-responsive="true"></ins>
+    </div>
+  </div>
+
+  <!-- ===== GUIDE SCREEN ===== -->
+  <div id="screen-guide" class="screen screen-scrollable">
+    <h2 class="title">공략 가이드</h2>
+
+    <div class="guide-card">
+      <h3 class="guide-heading">게임 규칙</h3>
+      <ul class="guide-list">
+        <li>60초 안에 최대한 많은 패턴을 기억하고 따라하세요</li>
+        <li>패턴 길이는 3에서 시작하여 라운드마다 1씩 증가합니다</li>
+        <li>틀리면 같은 패턴을 다시 시도하며 0.5초 패널티가 있습니다</li>
+        <li>틀리면 콤보가 초기화됩니다</li>
+      </ul>
+    </div>
+
+    <div class="guide-card">
+      <h3 class="guide-heading">점수 시스템</h3>
+      <div class="guide-formula">
+        <div class="formula-row">
+          <span class="formula-label">기본 점수</span>
+          <span class="formula-value">10 x 패턴 길이</span>
+        </div>
+        <div class="formula-row">
+          <span class="formula-label">콤보 배율</span>
+          <span class="formula-value">1.0 ~ 3.0x (콤보 x 0.1)</span>
+        </div>
+        <div class="formula-row">
+          <span class="formula-label">예시</span>
+          <span class="formula-value">패턴5 x 콤보10 = 100점</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <h3 class="guide-heading">고득점 전략</h3>
+      <ul class="guide-list guide-tips">
+        <li><strong>콤보를 유지하세요</strong> — 콤보 20 이상이면 3.0x 배율로 점수가 3배가 됩니다. 한 번도 안 틀리는 게 핵심입니다.</li>
+        <li><strong>위치를 외우지 말고 경로를 외우세요</strong> — 개별 셀 위치보다 "왼쪽 위 → 오른쪽 아래 → 가운데" 같은 이동 경로로 기억하면 더 쉽습니다.</li>
+        <li><strong>청킹(Chunking)</strong> — 긴 패턴은 3~4개씩 묶어서 기억하세요. "123-456-789" 같은 덩어리로 나누면 기억력이 크게 향상됩니다.</li>
+        <li><strong>리듬을 타세요</strong> — 패턴이 보여지는 리듬에 맞춰 입력하면 근육 기억이 형성되어 정확도가 올라갑니다.</li>
+        <li><strong>시간 관리</strong> — 초반에 실수 없이 콤보를 쌓은 뒤, 후반 고난이도에서 높은 배율로 대량 점수를 얻는 것이 이상적입니다.</li>
+      </ul>
+    </div>
+
+    <div class="guide-card">
+      <h3 class="guide-heading">난이도별 특징</h3>
+      <div class="guide-difficulty-grid">
+        <div class="guide-diff-item">
+          <span class="guide-diff-badge easy">쉬움 3x3</span>
+          <p>9칸 그리드. 패턴 기억 입문용. 빠른 클리어로 콤보를 쌓기 좋습니다.</p>
+        </div>
+        <div class="guide-diff-item">
+          <span class="guide-diff-badge normal">보통 4x4</span>
+          <p>16칸 그리드. 표준 난이도. 밸런스 잡힌 점수를 노릴 수 있습니다.</p>
+        </div>
+        <div class="guide-diff-item">
+          <span class="guide-diff-badge hard">어려움 5x5</span>
+          <p>25칸 그리드. 상급자용. 기본 점수가 높지만 실수 확률도 높습니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <h3 class="guide-heading">도파민 이펙트</h3>
+      <ul class="guide-list">
+        <li><strong>콤보 5+</strong> — 화면이 보라색으로 글로우</li>
+        <li><strong>콤보 10+</strong> — 화면 쉐이크 + 글로우</li>
+        <li><strong>빠른 정답</strong> — "PERFECT!" 텍스트 등장</li>
+        <li><strong>아슬아슬 클리어</strong> — 비네팅 연출</li>
+        <li><strong>오답</strong> — 빨간 플래시</li>
+      </ul>
+    </div>
+
+    <div id="ad-guide-screen" class="ad-slot">
+      <ins class="adsbygoogle"
+        style="display:block"
+        data-ad-client="ca-pub-8722810095782151"
+        data-ad-slot="auto"
+        data-ad-format="auto"
+        data-full-width-responsive="true"></ins>
+    </div>
+  </div>
+
+  <!-- ===== ABOUT/FAQ SCREEN ===== -->
+  <div id="screen-about" class="screen screen-scrollable">
+    <h2 class="title">게임 소개</h2>
+
+    <div class="about-section">
+      <p class="about-text">
+        <strong>패턴 배틀</strong>은 사이먼 게임에서 영감받은 패턴 기억력 도전 게임입니다.
+        60초 안에 화면에 표시되는 색상 패턴을 기억하고 정확히 따라하세요.
+        라운드가 올라갈수록 패턴이 길어지며, 콤보를 유지하면 점수 배율이 최대 3배까지 올라갑니다.
+      </p>
+      <p class="about-text">
+        일간 챌린지에서 전 세계 플레이어와 경쟁하고, 자신의 기록을 갱신해보세요!
+      </p>
+    </div>
+
+    <div class="faq-section">
+      <h3 class="section-title">자주 묻는 질문</h3>
+
+      <details class="faq-item">
+        <summary class="faq-q">점수는 어떻게 계산되나요?</summary>
+        <p class="faq-a">기본 점수 = 10 x 패턴 길이. 여기에 콤보 배율(1.0~3.0x)이 곱해집니다. 콤보를 유지할수록 높은 점수를 얻습니다.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">틀리면 어떻게 되나요?</summary>
+        <p class="faq-a">0.5초 패널티 후 같은 패턴을 다시 시도합니다. 콤보는 0으로 초기화되지만 라운드는 유지됩니다.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">일간 챌린지란?</summary>
+        <p class="faq-a">매일 같은 패턴 시퀀스로 모든 플레이어가 경쟁합니다. 같은 날 같은 조건에서 누가 더 높은 점수를 받는지 겨루는 모드입니다.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">난이도 차이는?</summary>
+        <p class="faq-a">쉬움(3x3=9칸), 보통(4x4=16칸), 어려움(5x5=25칸)으로 그리드 크기가 달라집니다. 칸이 많을수록 기억하기 어렵지만 기본 점수도 높습니다.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">데이터는 어디에 저장되나요?</summary>
+        <p class="faq-a">플레이 기록은 브라우저 로컬 저장소에 보관됩니다. 랭킹 참여 시에만 서버에 점수가 전송됩니다. 개인정보는 수집하지 않습니다.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">콤보 배율은 어디까지 올라가나요?</summary>
+        <p class="faq-a">최대 3.0x입니다. 콤보 20회부터 최대 배율이 적용됩니다.</p>
+      </details>
+    </div>
+
+    <div id="ad-about-screen" class="ad-slot">
+      <ins class="adsbygoogle"
+        style="display:block"
+        data-ad-client="ca-pub-8722810095782151"
+        data-ad-slot="auto"
+        data-ad-format="auto"
+        data-full-width-responsive="true"></ins>
+    </div>
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-item active" data-screen="start">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="nav-item" data-screen="stats">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+      <span>기록</span>
+    </button>
+    <button class="nav-item" data-screen="guide">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      <span>공략</span>
+    </button>
+    <button class="nav-item" data-screen="about">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
+      <span>소개</span>
+    </button>
+  </nav>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
   <!-- Scripts -->
   <script src="js/storage.js"></script>
   <script src="js/audio.js"></script>
@@ -144,6 +391,9 @@
   <script src="js/grid.js"></script>
   <script src="js/game-state.js"></script>
   <script src="js/ranking.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/daily.js"></script>
   <script src="js/ads.js"></script>
   <script src="js/app.js"></script>
 </body>

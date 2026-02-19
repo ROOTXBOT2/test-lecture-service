@@ -1,32 +1,34 @@
 /**
  * grid.js — Grid rendering, cell input handling
+ * Supports variable grid sizes (3x3, 4x4, 5x5)
  */
 const Grid = (() => {
   let _container = null;
   let _cells = [];
   let _onCellTap = null;
 
-  const COLORS = 8; // number of color variants
+  const COLORS = 8;
 
   function init(containerId) {
     _container = document.getElementById(containerId);
     _container.innerHTML = '';
     _cells = [];
 
-    for (let i = 0; i < Pattern.GRID_SIZE; i++) {
+    const cols = Pattern.getGridCols();
+    const size = Pattern.getGridSize();
+
+    _container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    _container.style.gridTemplateRows = `repeat(${cols}, 1fr)`;
+
+    for (let i = 0; i < size; i++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.index = i;
       cell.dataset.color = i % COLORS;
       cell.addEventListener('click', _handleTap);
-      cell.addEventListener('touchstart', _preventDouble, { passive: true });
       _container.appendChild(cell);
       _cells.push(cell);
     }
-  }
-
-  function _preventDouble(e) {
-    // handled by click
   }
 
   function _handleTap(e) {
@@ -34,20 +36,14 @@ const Grid = (() => {
     if (_onCellTap) _onCellTap(index, e.currentTarget);
   }
 
-  function onTap(callback) {
-    _onCellTap = callback;
-  }
+  function onTap(callback) { _onCellTap = callback; }
 
   function lightCell(index) {
-    const cell = _cells[index];
-    if (!cell) return;
-    cell.classList.add('lit');
+    if (_cells[index]) _cells[index].classList.add('lit');
   }
 
   function unlightCell(index) {
-    const cell = _cells[index];
-    if (!cell) return;
-    cell.classList.remove('lit');
+    if (_cells[index]) _cells[index].classList.remove('lit');
   }
 
   function unlightAll() {
@@ -55,30 +51,21 @@ const Grid = (() => {
   }
 
   function markCorrect(index) {
-    const cell = _cells[index];
-    if (!cell) return;
-    cell.classList.add('correct');
+    if (_cells[index]) _cells[index].classList.add('correct');
   }
 
   function markWrong(index) {
-    const cell = _cells[index];
-    if (!cell) return;
-    cell.classList.add('wrong');
-    setTimeout(() => cell.classList.remove('wrong'), 300);
+    if (!_cells[index]) return;
+    _cells[index].classList.add('wrong');
+    setTimeout(() => _cells[index].classList.remove('wrong'), 300);
   }
 
   function setDisabled(disabled) {
     _container.classList.toggle('disabled', disabled);
   }
 
-  function getCell(index) {
-    return _cells[index];
-  }
+  function getCell(index) { return _cells[index]; }
 
-  /**
-   * Show pattern sequence with animation
-   * @returns {Promise} resolves when animation is complete
-   */
   function showPattern(pattern, speed = 400) {
     return new Promise(resolve => {
       setDisabled(true);
@@ -98,22 +85,22 @@ const Grid = (() => {
         setTimeout(next, speed);
       }
 
-      // Short delay before starting
       setTimeout(next, 200);
     });
   }
 
-  // Initialize a static preview grid (decorative, on start screen)
   function initPreview(containerId) {
     const container = document.getElementById(containerId);
+    if (!container) return;
     container.innerHTML = '';
-    for (let i = 0; i < Pattern.GRID_SIZE; i++) {
+    container.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    container.style.gridTemplateRows = 'repeat(4, 1fr)';
+    for (let i = 0; i < 16; i++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.color = i % COLORS;
       container.appendChild(cell);
     }
-    // Animate a few cells
     _animatePreview(container);
   }
 
@@ -128,16 +115,12 @@ const Grid = (() => {
       timeout = setTimeout(loop, 800 + Math.random() * 400);
     }
     loop();
-
-    // Store cleanup reference
     container._previewCleanup = () => clearTimeout(timeout);
   }
 
   function stopPreview(containerId) {
     const container = document.getElementById(containerId);
-    if (container && container._previewCleanup) {
-      container._previewCleanup();
-    }
+    if (container && container._previewCleanup) container._previewCleanup();
   }
 
   return { init, onTap, lightCell, unlightCell, unlightAll, markCorrect, markWrong, setDisabled, getCell, showPattern, initPreview, stopPreview };

@@ -1,13 +1,29 @@
 /**
  * pattern.js — Pattern generation (no consecutive duplicates)
+ * Supports variable grid sizes for difficulty
  */
 const Pattern = (() => {
-  const GRID_SIZE = 16; // 4x4
+  let GRID_SIZE = 16; // default 4x4
+  let GRID_COLS = 4;
 
-  /**
-   * Generate a pattern of `length` cell indices (0-15).
-   * Ensures no consecutive duplicates.
-   */
+  const DIFFICULTIES = {
+    easy:   { cols: 3, size: 9 },
+    normal: { cols: 4, size: 16 },
+    hard:   { cols: 5, size: 25 },
+  };
+
+  function setDifficulty(diff) {
+    const d = DIFFICULTIES[diff] || DIFFICULTIES.normal;
+    GRID_COLS = d.cols;
+    GRID_SIZE = d.size;
+  }
+
+  function getDifficulty() {
+    if (GRID_SIZE === 9) return 'easy';
+    if (GRID_SIZE === 25) return 'hard';
+    return 'normal';
+  }
+
   function generate(length) {
     const pattern = [];
     for (let i = 0; i < length; i++) {
@@ -20,5 +36,8 @@ const Pattern = (() => {
     return pattern;
   }
 
-  return { generate, GRID_SIZE };
+  function getGridSize() { return GRID_SIZE; }
+  function getGridCols() { return GRID_COLS; }
+
+  return { generate, setDifficulty, getDifficulty, getGridSize, getGridCols, DIFFICULTIES };
 })();

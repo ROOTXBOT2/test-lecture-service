@@ -4,6 +4,8 @@
 const App = (() => {
   const screens = {};
   let _currentScreen = 'start';
+  let _selectedMode = 'normal';
+  let _selectedDiff = 'normal';
 
   function init() {
     // Cache screens
@@ -11,19 +13,22 @@ const App = (() => {
     screens.game = document.getElementById('screen-game');
     screens.result = document.getElementById('screen-result');
     screens.ranking = document.getElementById('screen-ranking');
+    screens.stats = document.getElementById('screen-stats');
+    screens.guide = document.getElementById('screen-guide');
+    screens.about = document.getElementById('screen-about');
 
     // Load saved nickname
     const nicknameInput = document.getElementById('input-nickname');
     nicknameInput.value = Storage.getNickname();
+
+    // Show best score on start screen
+    _showBestScore();
 
     // Connect ranking API
     Ranking.setApiBase('https://pattern-battle-api.rootxbot2.workers.dev');
 
     // Init preview grid
     Grid.initPreview('grid-preview');
-
-    // Init game grid
-    Grid.init('grid-game');
 
     // Audio enabled from storage
     Audio.setEnabled(Storage.getSoundEnabled());
@@ -38,15 +43,44 @@ const App = (() => {
     GameState.onStateChange(_handleStateChange);
   }
 
+  function _showBestScore() {
+    const best = Storage.getBestScore();
+    if (best > 0) {
+      document.getElementById('start-best-score').style.display = 'flex';
+      document.getElementById('best-score-display').textContent = best.toLocaleString();
+    }
+  }
+
   function _bindEvents() {
     document.getElementById('btn-start').addEventListener('click', _startGame);
     document.getElementById('btn-restart').addEventListener('click', _restart);
-    document.getElementById('btn-ranking').addEventListener('click', () => _showScreen('ranking'));
+    document.getElementById('btn-ranking').addEventListener('click', () => {
+      _showScreen('ranking');
+      _loadRankings('daily');
+    });
     document.getElementById('btn-back-from-ranking').addEventListener('click', _backFromRanking);
 
-    // Nickname save on blur
+    // Nickname save
     document.getElementById('input-nickname').addEventListener('blur', (e) => {
       Storage.setNickname(e.target.value);
+    });
+
+    // Mode tabs
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        _selectedMode = tab.dataset.mode;
+      });
+    });
+
+    // Difficulty buttons
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        _selectedDiff = btn.dataset.diff;
+      });
     });
 
     // Ranking tabs
@@ -55,6 +89,23 @@ const App = (() => {
         document.querySelectorAll('.ranking-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         _loadRankings(tab.dataset.tab);
+      });
+    });
+
+    // Share buttons
+    document.getElementById('btn-share-x').addEventListener('click', () => Share.shareX());
+    document.getElementById('btn-share-kakao').addEventListener('click', () => Share.shareKakao());
+    document.getElementById('btn-share-copy').addEventListener('click', () => Share.copyLink());
+
+    // Bottom nav
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const screen = item.dataset.screen;
+        _showScreen(screen);
+        _updateNav(screen);
+
+        // Load stats when switching to stats screen
+        if (screen === 'stats') Stats.renderStats();
       });
     });
 
@@ -68,14 +119,32 @@ const App = (() => {
       screens[name].classList.add('active');
       _currentScreen = name;
     }
+
+    // Show/hide bottom nav during game
+    const nav = document.getElementById('bottom-nav');
+    if (name === 'game') {
+      nav.classList.add('hidden');
+    } else {
+      nav.classList.remove('hidden');
+    }
+  }
+
+  function _updateNav(screen) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.screen === screen);
+    });
   }
 
   function _startGame() {
-    // Save nickname
     const nickname = document.getElementById('input-nickname').value.trim();
     Storage.setNickname(nickname);
 
+    // Set difficulty and mode
+    GameState.setDifficulty(_selectedDiff);
+    GameState.setMode(_selectedMode);
+
     Grid.stopPreview('grid-preview');
+    Grid.init('grid-game');
     _showScreen('game');
     Ads.hideAd('ad-below-game');
 
@@ -96,16 +165,19 @@ const App = (() => {
 
   function _restart() {
     _showScreen('start');
+    _updateNav('start');
     Grid.initPreview('grid-preview');
+    _showBestScore();
     Ads.showAd('ad-below-game');
   }
 
   function _backFromRanking() {
-    // Go back to result screen if came from result, otherwise start
     if (GameState.getState() === GameState.STATES.ENDED) {
       _showScreen('result');
+      _updateNav('start');
     } else {
       _showScreen('start');
+      _updateNav('start');
     }
   }
 
@@ -113,31 +185,13 @@ const App = (() => {
 
   function _handleStateChange(newState, oldState, data) {
     const S = GameState.STATES;
-
     switch (newState) {
-      case S.COUNTDOWN:
-        _runCountdown();
-        break;
-
-      case S.SHOWING:
-        _showPatternPhase(data);
-        break;
-
-      case S.INPUT:
-        _inputPhase(data);
-        break;
-
-      case S.ROUND_CLEAR:
-        _roundClearPhase(data);
-        break;
-
-      case S.PENALTY:
-        _penaltyPhase(data);
-        break;
-
-      case S.ENDED:
-        _endedPhase(data);
-        break;
+      case S.COUNTDOWN: _runCountdown(); break;
+      case S.SHOWING: _showPatternPhase(data); break;
+      case S.INPUT: _inputPhase(data); break;
+      case S.ROUND_CLEAR: _roundClearPhase(data); break;
+      case S.PENALTY: _penaltyPhase(data); break;
+      case S.ENDED: _endedPhase(data); break;
     }
   }
 
@@ -145,6 +199,11 @@ const App = (() => {
     const overlay = document.getElementById('countdown-overlay');
     const number = document.getElementById('countdown-number');
     overlay.classList.add('active');
+
+    // Show daily label if daily mode
+    if (GameState.getMode() === 'daily') {
+      document.getElementById('game-message').textContent = '일간 챌린지 ' + Daily.getTodayLabel();
+    }
 
     let count = 3;
     number.textContent = count;
@@ -155,7 +214,7 @@ const App = (() => {
       if (count > 0) {
         number.textContent = count;
         number.style.animation = 'none';
-        void number.offsetHeight; // reflow
+        void number.offsetHeight;
         number.style.animation = '';
         Audio.tick();
       } else {
@@ -184,7 +243,6 @@ const App = (() => {
     _updateHUD();
     _renderProgress(data.length, -1);
 
-    // Speed scales with pattern length (faster at higher rounds)
     const speed = Math.max(200, 450 - data.length * 15);
     await Grid.showPattern(data.pattern, speed);
 
@@ -216,16 +274,20 @@ const App = (() => {
     Effects.clearAll();
     Audio.gameOver();
 
-    // Save best score
+    // Check new best
+    const prevBest = Storage.getBestScore();
+    const isNewBest = data.score > prevBest;
     Storage.setBestScore(data.score);
 
-    // Show result screen
+    // Save to local stats
+    Stats.addGame(data);
+
     setTimeout(() => {
-      _showResultScreen(data);
+      _showResultScreen(data, isNewBest);
     }, 600);
   }
 
-  function _showResultScreen(data) {
+  function _showResultScreen(data, isNewBest) {
     _showScreen('result');
 
     document.getElementById('result-score').textContent = data.score.toLocaleString();
@@ -234,9 +296,17 @@ const App = (() => {
     document.getElementById('result-accuracy').textContent = data.accuracy + '%';
     document.getElementById('result-rank').textContent = '-';
 
-    Ads.showAd('ad-result-screen');
+    const diffNames = { easy: '쉬움 3x3', normal: '보통 4x4', hard: '어려움 5x5' };
+    document.getElementById('result-difficulty').textContent = diffNames[data.difficulty] || '보통 4x4';
 
-    // Submit score to API
+    // New best badge
+    const newBestEl = document.getElementById('result-new-best');
+    newBestEl.style.display = isNewBest ? 'block' : 'none';
+
+    // Set share data
+    Share.setResult(data);
+
+    Ads.showAd('ad-result-screen');
     _submitScore(data);
   }
 
@@ -257,6 +327,13 @@ const App = (() => {
       } else {
         rankEl.textContent = `#${result.rank}`;
       }
+
+      // Update share data with rank
+      const d = Score.getSummary();
+      d.difficulty = GameState.getDifficulty();
+      d.rank = result.rank;
+      d.top_percent = result.top_percent;
+      Share.setResult(d);
     }
   }
 
@@ -272,11 +349,9 @@ const App = (() => {
       Audio.correct();
       Grid.markCorrect(cellIndex);
 
-      // Score pop
       const rect = cellEl.getBoundingClientRect();
       Effects.scorePop(rect.left + rect.width / 2, rect.top, result.gained);
 
-      // Update progress dots
       _renderProgress(GameState.getPatternLength(), GameState.getInputIndex());
     } else {
       Grid.markWrong(cellIndex);
@@ -296,7 +371,6 @@ const App = (() => {
   function _renderProgress(total, currentIndex) {
     const container = document.getElementById('pattern-progress');
     container.innerHTML = '';
-
     for (let i = 0; i < total; i++) {
       const dot = document.createElement('div');
       dot.className = 'progress-dot';
