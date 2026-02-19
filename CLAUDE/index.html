@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="description" content="60초 안에 패턴을 기억하고 따라하세요! 사이먼 게임 스타일 4x4 패턴 기억력 배틀.">
+  <title>패턴 배틀 | 60초 기억력 도전</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/grid.css">
+  <link rel="stylesheet" href="css/effects.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+  <!-- ===== START SCREEN ===== -->
+  <div id="screen-start" class="screen active">
+    <h1 class="title">패턴 배틀</h1>
+    <p class="subtitle">60초 안에 최대한 많은 패턴을 기억하세요</p>
+
+    <div class="grid-container" id="grid-preview" style="max-width:200px;pointer-events:none;">
+      <!-- 4x4 preview grid (decorative) -->
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;">
+      <input type="text" id="input-nickname" class="nickname-input" placeholder="닉네임 (최대 12자)" maxlength="12">
+    </div>
+
+    <button id="btn-start" class="btn btn-primary">게임 시작</button>
+
+    <div id="ad-below-game" class="ad-slot">AD</div>
+  </div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="screen-game" class="screen">
+    <div class="hud">
+      <div class="hud-item">
+        <span class="hud-label">시간</span>
+        <span class="hud-value" id="hud-timer">60</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">점수</span>
+        <span class="hud-value" id="hud-score">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">콤보</span>
+        <span class="hud-value" id="hud-combo">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">라운드</span>
+        <span class="hud-value" id="hud-round">1</span>
+      </div>
+    </div>
+
+    <div class="pattern-progress" id="pattern-progress"></div>
+
+    <div class="grid-container disabled" id="grid-game">
+      <!-- Cells injected by JS -->
+    </div>
+
+    <div id="game-message" class="subtitle" style="min-height:1.5em;"></div>
+  </div>
+
+  <!-- ===== COUNTDOWN OVERLAY ===== -->
+  <div id="countdown-overlay" class="countdown-overlay">
+    <span id="countdown-number" class="countdown-number"></span>
+  </div>
+
+  <!-- ===== RESULT SCREEN ===== -->
+  <div id="screen-result" class="screen">
+    <h2 class="title">게임 종료!</h2>
+
+    <div class="result-score" id="result-score">0</div>
+
+    <div class="result-card">
+      <div class="result-row">
+        <span class="result-label">클리어 라운드</span>
+        <span class="result-value" id="result-rounds">0</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">최고 콤보</span>
+        <span class="result-value" id="result-combo">0</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">정확도</span>
+        <span class="result-value" id="result-accuracy">0%</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">랭크</span>
+        <span class="result-value" id="result-rank">-</span>
+      </div>
+    </div>
+
+    <div id="ad-result-screen" class="ad-slot">AD</div>
+
+    <div class="result-buttons">
+      <button id="btn-restart" class="btn btn-primary">다시 하기</button>
+      <button id="btn-ranking" class="btn btn-secondary">랭킹</button>
+    </div>
+  </div>
+
+  <!-- ===== RANKING SCREEN ===== -->
+  <div id="screen-ranking" class="screen">
+    <h2 class="title">랭킹</h2>
+
+    <div class="ranking-tabs">
+      <button class="ranking-tab active" data-tab="daily">오늘</button>
+      <button class="ranking-tab" data-tab="alltime">전체</button>
+    </div>
+
+    <div class="ranking-list" id="ranking-list">
+      <p class="subtitle" style="padding:20px;">랭킹을 불러오는 중...</p>
+    </div>
+
+    <button id="btn-back-from-ranking" class="btn btn-secondary" style="width:100%;">돌아가기</button>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/pattern.js"></script>
+  <script src="js/score.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/grid.js"></script>
+  <script src="js/game-state.js"></script>
+  <script src="js/ranking.js"></script>
+  <script src="js/ads.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

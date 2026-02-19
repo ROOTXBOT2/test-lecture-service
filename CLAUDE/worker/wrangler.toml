@@ -1,0 +1,9 @@
+name = "pattern-battle-api"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+# Update after running: wrangler d1 create pattern-battle-db
+[[d1_databases]]
+binding = "DB"
+database_name = "pattern-battle-db"
+database_id = "2ec4da7b-fa74-4bbb-83f7-acb2c145ec7a"

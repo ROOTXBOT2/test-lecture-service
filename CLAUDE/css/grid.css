@@ -1,0 +1,117 @@
+.grid-container {
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 340px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--cell-gap);
+  padding: 4px;
+}
+
+.cell {
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 2px solid rgba(255,255,255,0.04);
+  transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.cell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.cell:active {
+  transform: scale(0.92);
+}
+
+/* Lit state — pattern showing */
+.cell.lit {
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 0 16px rgba(255,255,255,0.15);
+}
+
+/* Color assignments */
+.cell[data-color="0"].lit, .cell[data-color="0"].correct { background: var(--c0); }
+.cell[data-color="1"].lit, .cell[data-color="1"].correct { background: var(--c1); }
+.cell[data-color="2"].lit, .cell[data-color="2"].correct { background: var(--c2); }
+.cell[data-color="3"].lit, .cell[data-color="3"].correct { background: var(--c3); }
+.cell[data-color="4"].lit, .cell[data-color="4"].correct { background: var(--c4); }
+.cell[data-color="5"].lit, .cell[data-color="5"].correct { background: var(--c5); }
+.cell[data-color="6"].lit, .cell[data-color="6"].correct { background: var(--c6); }
+.cell[data-color="7"].lit, .cell[data-color="7"].correct { background: var(--c7); }
+
+/* Correct tap */
+.cell.correct {
+  border-color: rgba(255,255,255,0.3);
+  animation: cellPop 0.25s ease-out;
+}
+
+/* Wrong tap */
+.cell.wrong {
+  background: var(--danger) !important;
+  border-color: var(--danger);
+  animation: cellShake 0.3s ease;
+}
+
+/* Disabled during showing / lockout */
+.grid-container.disabled .cell {
+  pointer-events: none;
+}
+
+/* Progress dots — show which step in pattern */
+.pattern-progress {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  min-height: 20px;
+  flex-wrap: wrap;
+  max-width: 340px;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.progress-dot.filled {
+  background: var(--success);
+  border-color: var(--success);
+  transform: scale(1.2);
+}
+
+.progress-dot.current {
+  border-color: var(--accent-glow);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.progress-dot.wrong-dot {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+@keyframes cellPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes cellShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
